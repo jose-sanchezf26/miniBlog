@@ -12,7 +12,6 @@ const categories = POST_CATEGORIES;
 
 <div id="dashboard-manager" class="p-6 bg-white shadow-xl rounded-lg">
     <section class="mb-8 p-4 border border-gray-200 rounded-lg">
-        <h2 class="text-2xl font-bold mb-4 text-indigo-700" id="form-title">Crear Nuevo Post</h2>
         
         <form id="post-form" class="space-y-4">
             <input type="hidden" id="post-id"> 
@@ -41,8 +40,8 @@ const categories = POST_CATEGORIES;
             
             <div>
                 <label for="author" class="block text-sm font-medium text-gray-700">Autor</label>
-                <input type="text" id="author" name="author" value={AUTHOR_NAME} readonly
-                       class="mt-1 block w-full bg-gray-100 border border-gray-300 rounded-md shadow-sm p-2 cursor-not-allowed">
+                <input type="text" id="author" name="author"
+                       class="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm p-2">
             </div>
 
             <button type="submit" id="submit-button" disabled
@@ -71,7 +70,6 @@ const categories = POST_CATEGORIES;
         const form = document.getElementById('post-form');
         const listContainer = document.getElementById('posts-list');
         const submitButton = document.getElementById('submit-button');
-        const formTitle = document.getElementById('form-title');
         const cancelEditButton = document.getElementById('cancel-edit-button');
         const formMessage = document.getElementById('form-message');
         
@@ -127,7 +125,6 @@ const categories = POST_CATEGORIES;
             form.reset();
             document.getElementById('post-id').value = '';
             document.getElementById('author').value = AUTHOR_NAME;
-            formTitle.textContent = 'Crear Nuevo Post';
             submitButton.textContent = 'Guardar Post';
             cancelEditButton.classList.add('hidden');
             isEditing = false;
@@ -187,7 +184,6 @@ const categories = POST_CATEGORIES;
             document.getElementById('title').value = title;
             // Para la demo, el contenido y la categoría deben cargarse del post real si fuera un fetch
             
-            formTitle.textContent = `Editar Post #${id}`;
             submitButton.textContent = 'Actualizar Post';
             cancelEditButton.classList.remove('hidden');
             isEditing = true;
