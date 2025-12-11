@@ -1,0 +1,32 @@
+---
+// BaseLayout.astro
+import '../styles/global.css'; 
+const { title } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-indigo-600 shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold text-white hover:text-indigo-200 transition">MiniBlog</a>
+            <nav class="space-x-4">
+                <a href="/" class="text-white hover:text-indigo-200 font-medium">Feed</a>
+                <a href="/dashboard" class="text-white hover:text-indigo-200 font-medium bg-indigo-700 px-3 py-1 rounded">Dashboard</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <slot />
+    </main>
+    
+    <footer class="text-center py-4 text-gray-500 text-sm">
+        Desarrollado con Spring Boot & Astro.
+    </footer>
+</body>
+</html>

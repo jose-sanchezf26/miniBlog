@@ -1,0 +1,46 @@
+---
+// index.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { getPublicPosts } from '../services/postApi.js'; 
+import { POST_CATEGORIES } from '../utils/categories.js';
+
+// Lógica para obtener el parámetro de filtrado de la URL
+const url = new URL(Astro.request.url);
+const filterCategory = url.searchParams.get('category');
+
+let posts = [];
+
+try {
+    // La petición se hace desde el servidor de Astro
+    posts = await getPublicPosts(filterCategory, 0); 
+} catch (error) {
+    console.error("Error al cargar posts:", error);
+}
+---
+
+<BaseLayout title="Mini Blog | Feed">
+    <h1 class="text-4xl font-extrabold mb-8 text-gray-800">Posts Recientes</h1>
+
+    <div class="mb-8 flex flex-wrap gap-3">
+        <a href="/" class:list={["px-4 py-2 rounded-full text-sm font-medium transition", !filterCategory ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-200']}>
+            Todos
+        </a>
+        {POST_CATEGORIES.map((cat) => (
+            <a href={`/?category=${cat}`} 
+               class:list={["px-4 py-2 rounded-full text-sm font-medium transition", filterCategory === cat ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-200']}>
+                {cat}
+            </a>
+        ))}
+    </div>
+
+    <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.length > 0 ? (
+            posts.map((post) => (
+                <PostCard post={post} />
+            ))
+        ) : (
+            <p class="col-span-full text-center text-gray-600 text-xl py-10">No hay posts disponibles.</p>
+        )}
+    </main>
+</BaseLayout>

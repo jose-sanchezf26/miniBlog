@@ -1,0 +1,218 @@
+---
+// DashboardManager.astro
+// Este componente usa un script de cliente (client:load) para toda la interactividad.
+
+import { POST_CATEGORIES } from '../utils/categories.js';
+
+// Usaremos un autor fijo para este componente CRUD simplificado
+const AUTHOR_NAME = "Admin_Demo"; 
+
+const categories = POST_CATEGORIES;
+---
+
+<div id="dashboard-manager" class="p-6 bg-white shadow-xl rounded-lg">
+    <section class="mb-8 p-4 border border-gray-200 rounded-lg">
+        <h2 class="text-2xl font-bold mb-4 text-indigo-700" id="form-title">Crear Nuevo Post</h2>
+        
+        <form id="post-form" class="space-y-4">
+            <input type="hidden" id="post-id"> 
+            
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700">Título</label>
+                <input type="text" id="title" name="title" required minlength="5" maxlength="150"
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+
+            <div>
+                <label for="content" class="block text-sm font-medium text-gray-700">Contenido</label>
+                <textarea id="content" name="content" required minlength="10" rows="5"
+                          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+            </div>
+
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700">Categoría</label>
+                <select id="category" name="category" required 
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                    {categories.map(cat => (
+                        <option value={cat}>{cat}</option>
+                    ))}
+                </select>
+            </div>
+            
+            <div>
+                <label for="author" class="block text-sm font-medium text-gray-700">Autor</label>
+                <input type="text" id="author" name="author" value={AUTHOR_NAME} readonly
+                       class="mt-1 block w-full bg-gray-100 border border-gray-300 rounded-md shadow-sm p-2 cursor-not-allowed">
+            </div>
+
+            <button type="submit" id="submit-button" disabled
+                    class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition duration-150">
+                Guardar Post
+            </button>
+            <button type="button" id="cancel-edit-button" class="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150 hidden">
+                Cancelar Edición
+            </button>
+            <p id="form-message" class="mt-2 text-center font-medium"></p>
+        </form>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-bold mb-4 text-indigo-700">Mis Posts ({AUTHOR_NAME})</h2>
+        <div id="posts-list" class="space-y-4">
+            <p class="text-gray-500">Cargando posts...</p>
+        </div>
+    </section>
+</div>
+
+<script type="module" define:vars={{ AUTHOR_NAME }}>
+    import { createPost, getPostsByAuthor, updatePost, deletePost } from '/src/services/postApi.js';
+    // Toda esta lógica se ejecuta en el navegador
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('post-form');
+        const listContainer = document.getElementById('posts-list');
+        const submitButton = document.getElementById('submit-button');
+        const formTitle = document.getElementById('form-title');
+        const cancelEditButton = document.getElementById('cancel-edit-button');
+        const formMessage = document.getElementById('form-message');
+        
+        let isEditing = false;
+
+        // Habilita el botón de envío solo cuando el formulario es válido (HTML5 validation)
+        form.addEventListener('input', () => {
+            submitButton.disabled = !form.checkValidity();
+        });
+
+        // --- LÓGICA DE RENDERING ---
+        const renderPostList = async () => {
+            listContainer.innerHTML = '<p class="text-indigo-500">Recargando posts...</p>';
+            
+            try {
+                // Función global getPostsByAuthor viene de postApi.js
+                const posts = await getPostsByAuthor(AUTHOR_NAME); 
+                
+                if (posts.length === 0) {
+                    listContainer.innerHTML = '<p class="text-gray-500">Aún no has creado ningún post.</p>';
+                    return;
+                }
+
+                listContainer.innerHTML = '';
+                posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.className = 'p-4 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-center transition hover:shadow-md';
+                    postElement.innerHTML = `
+                        <div>
+                            <h3 class="text-lg font-semibold">${post.title}</h3>
+                            <p class="text-sm text-gray-600">Categoría: ${post.category}</p>
+                            <small class="text-xs text-gray-500">${new Date(post.createdAt).toLocaleDateString()}</small>
+                        </div>
+                        <div class="space-x-2">
+                            <button data-id="${post.id}" data-action="edit" class="edit-btn text-blue-600 hover:text-blue-800 font-medium">Editar</button>
+                            <button data-id="${post.id}" data-action="delete" class="delete-btn text-red-600 hover:text-red-800 font-medium">Borrar</button>
+                        </div>
+                    `;
+                    listContainer.appendChild(postElement);
+                });
+
+                // Añadir listeners para los nuevos botones
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', handleEditClick));
+                document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', handleDeleteClick));
+
+            } catch (error) {
+                listContainer.innerHTML = `<p class="text-red-500">Error al cargar la lista: ${error.message}</p>`;
+            }
+        };
+
+        // --- LÓGICA DE FORMULARIO (CREATE/UPDATE) ---
+        const resetForm = () => {
+            form.reset();
+            document.getElementById('post-id').value = '';
+            document.getElementById('author').value = AUTHOR_NAME;
+            formTitle.textContent = 'Crear Nuevo Post';
+            submitButton.textContent = 'Guardar Post';
+            cancelEditButton.classList.add('hidden');
+            isEditing = false;
+        };
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formMessage.textContent = '';
+            
+            const payload = {
+                title: document.getElementById('title').value,
+                content: document.getElementById('content').value,
+                category: document.getElementById('category').value,
+                author: document.getElementById('author').value,
+            };
+
+            const postId = document.getElementById('post-id').value;
+            submitButton.disabled = true;
+            submitButton.textContent = isEditing ? 'Actualizando...' : 'Creando...';
+            
+            try {
+                if (isEditing) {
+                    // Actualizar
+                    await updatePost(postId, payload);
+                    formMessage.textContent = `Post #${postId} actualizado con éxito.`;
+                    formMessage.className = 'text-green-600 mt-2 font-medium';
+                } else {
+                    // Crear
+                    await createPost(payload);
+                    formMessage.textContent = `Post creado con éxito.`;
+                    formMessage.className = 'text-green-600 mt-2 font-medium';
+                }
+                
+                resetForm();
+                await renderPostList(); // Recargar la lista tras el éxito
+
+            } catch (error) {
+                console.error("Error en la operación:", error);
+                formMessage.textContent = `Error: ${error.message}`;
+                formMessage.className = 'text-red-600 mt-2 font-medium';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = isEditing ? 'Actualizar Post' : 'Guardar Post';
+            }
+        });
+
+        // --- MANEJADORES DE ACCIONES (EDIT/DELETE) ---
+        const handleEditClick = (e) => {
+            const id = e.target.dataset.id;
+            
+            // Simular carga de post por ID (En una app real se haría un fetch GET /posts/{id})
+            const postElement = e.target.closest('.p-4');
+            const title = postElement.querySelector('h3').textContent;
+            
+            // Asumimos que podemos inferir/obtener los datos necesarios para editar
+            document.getElementById('post-id').value = id;
+            document.getElementById('title').value = title;
+            // Para la demo, el contenido y la categoría deben cargarse del post real si fuera un fetch
+            
+            formTitle.textContent = `Editar Post #${id}`;
+            submitButton.textContent = 'Actualizar Post';
+            cancelEditButton.classList.remove('hidden');
+            isEditing = true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        
+        const handleDeleteClick = async (e) => {
+            const id = e.target.dataset.id;
+            if (!confirm(`¿Seguro que deseas eliminar el Post #${id}?`)) return;
+            
+            e.target.disabled = true;
+            e.target.textContent = 'Borrando...';
+            
+            try {
+                await deletePost(id);
+                alert(`Post #${id} eliminado con éxito.`);
+                await renderPostList();
+            } catch (error) {
+                alert(`Error al borrar: ${error.message}`);
+            }
+        };
+
+        cancelEditButton.addEventListener('click', resetForm);
+
+        // Inicializar la lista al cargar la página
+        renderPostList();
+    });
+</script>

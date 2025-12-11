@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/posts")
 @Validated
-@CrossOrigin(origins = "*") // Permitir llamadas desde cualquier origen (Frontend en otro puerto)
+// @CrossOrigin(origins = "http://localhost:4321")
 public class PostController {
 
     private final PostService postService;
