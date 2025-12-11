@@ -1,5 +1,6 @@
 ---
 // index.astro
+export const prerender = false
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import { getPublicPosts } from '../services/postApi.js'; 
@@ -7,8 +8,9 @@ import { POST_CATEGORIES } from '../utils/categories.js';
 
 // Lógica para obtener el parámetro de filtrado de la URL
 const url = new URL(Astro.request.url);
+console.log(`[Astro SSR] URL COMPLETA recibida: ${Astro.request.url}`);
 const filterCategory = url.searchParams.get('category');
-
+console.log(`[Astro SSR] Categoría recibida de la URL: ${filterCategory}`);
 let posts = [];
 
 try {
